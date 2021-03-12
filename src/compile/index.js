@@ -59,10 +59,10 @@ function generate(el) {
     return code;
 }
 export function compileToFunction(template) {
-    console.log(template, 'template 转换 render方法');
+    // console.log(template, 'template 转换 render方法');
     // 1、解析html字符串，将html字符串解析成ast语法树
     let root = parseHTML(template);
-    console.log(root);
+    // console.log(root);
 
 
     // 2、需要将ast语法树生成最终的render函数,就是字符串拼接（模板引擎）
@@ -72,7 +72,7 @@ export function compileToFunction(template) {
     // 字符串： _c("div",{id:app},_c("p",undefined,_v("hello" + _s(name))),_v("hello"))
 
     let code = generate(root);
-    console.log(code);
+    // console.log(code);
 
     //所有的模板引擎实现，都需要new Function + with
     let renderFn = new Function(`with(this){return ${code}}`);

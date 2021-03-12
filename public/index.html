@@ -11,6 +11,8 @@
 <body>
     <div id="app" style="color: red;">
         <p>hello {{name}}</p>
+        <p>{{arr}}</p>
+        <p>{{arr[0]}}</p>
     </div>
     <script src="/dist/umd/vue.js"></script>
     <script type="text/javascript">
@@ -19,13 +21,31 @@
             data() {
                 return {
                     name: "zhaosi",
-                    age: 20
+                    age: 20,
+                    arr: [[7, 8, 9], 1, 2, 3]
                 }
+            },
+            beforeCreate() {
+
             }
+        })
+        vm.arr.push(4);
+        vm.arr.push(5);
+        vm.arr.push(6);
+        console.log(vm.$el.innerHTML)
+        vm.$nextTick(()=>{
+            console.log(vm.$el.innerHTML)
         })
         // vm._data.arr.push({name:2222})
         // console.log()
-        console.log(vm._data);
+        // console.log(vm._data);
+        // setTimeout(function () {
+        //     // console.log(1111111);
+        //     // console.log(vm.name);
+        //     // vm.name = "liuneng1111111"
+        //     // vm.arr.push(4, 5, 6);
+        //     // vm.arr[0].push(1, 2, 3);
+        // }, 2000);
     </script>
 </body>
 

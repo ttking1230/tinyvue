@@ -32,7 +32,7 @@ function createASTElement(tagName, attrs) {
 }
 
 function start(tagName, attrs) {
-    console.log("开始标签：", tagName, "属性是：", attrs);
+    // console.log("开始标签：", tagName, "属性是：", attrs);
     // 遇到开始标签，就创建一个ast元素
     let element = createASTElement(tagName, attrs);
     if (!root) {
@@ -42,7 +42,7 @@ function start(tagName, attrs) {
     stack.push(element);
 }
 function charts(text) {
-    console.log("文本是：", text);
+    // console.log("文本是：", text);
     text = text.replace(/\s/g, '');
     if (text) {
         currentParent.children.push({
@@ -52,7 +52,7 @@ function charts(text) {
     }
 }
 function end(tagName) {
-    console.log("结束标签：", tagName);
+    // console.log("结束标签：", tagName);
     let element = stack.pop();
     currentParent = stack[stack.length - 1];
     if (currentParent) {
@@ -114,10 +114,10 @@ export function parseHTML(html) {
                 advance(end[0].length);//标签名和属性已经匹配完成，去掉开始标签的>
                 return match;
             }
-            console.log(match)
+            // console.log(match)
         }
 
-        console.log(html)
+        // console.log(html)
     }
     return root;
 }

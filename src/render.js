@@ -20,7 +20,7 @@ export default function renderMixin(Vue) {
     }
 
     Vue.prototype._render = function () {
-        console.log("render-----");
+        // console.log("render-----");
         const vm = this;
         let { render } = vm.$options;
         let vnode = render.call(vm);
