@@ -10,10 +10,10 @@ export default function renderMixin(Vue) {
     // 此时的上下文为this，即为传入的vm，即是执行vm.name，之前已做过proxy()代理，vm.name => vm._data.name
 
     Vue.prototype._c = function () {
-        return createElement(...arguments);
+        return createElement(this, ...arguments);
     }
     Vue.prototype._v = function (text) {
-        return createTextNode(text);
+        return createTextNode(this, text);
     }
     Vue.prototype._s = function (val) {
         return val === null ? '' : (typeof val === 'object' ? JSON.stringify(val) : val);
@@ -26,4 +26,4 @@ export default function renderMixin(Vue) {
         let vnode = render.call(vm);
         return vnode;
     }
-}   
+}

@@ -1,14 +1,27 @@
 
-import { mergeOptions } from "../util/index.js"
+import { ASSETS_TYPE } from "./const.js"
+import initMixin from "./mixin.js"
+import initAssetRegisters from "./assets.js"
+import initExtend from "./extend.js"
+
+
 export default function initGlobalAPI(Vue) {
     // 整合了所有的全局相关的内容
     Vue.options = {}
 
-    // 生命周期的合并策略,同名的生命周期会合并成一个数组 [beforeCreate,beforeCreate]
-    // 依次执行，不会覆盖，，其实是一个发布订阅模式
-    Vue.mixin = function (mixin) {
-        // 面试经常问，如何实现两个对象的合并
-        this.options = mergeOptions(this.options, mixin);
-    }
-    console.log(Vue.options);
+    // 合并策略
+    initMixin(Vue);
+
+    // 初始化的全局过滤器，指令，组件
+    ASSETS_TYPE.forEach(type => {
+        Vue.options[type + "s"] = {};
+    });
+
+
+    // _base 是vue的构造函数
+    Vue.options._base = Vue;
+
+    // 注册extend方法
+    initExtend(Vue);
+    initAssetRegisters(Vue);
 }

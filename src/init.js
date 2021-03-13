@@ -14,7 +14,7 @@ export default function initMixin(Vue) {
         // 用户传入的options和Vue.options合并到vm.$options上，即实例的$options上面
         // options指代的就是用户定义的属性
         // vm.constructor.options 有些实例是继承而来，所以始终要指向实例自身的options
-        // 将用户传递的 和 全局的 进行合并
+        // 将用户传递的 和 全局的 进行合并，统一放在$options上面
         console.log(vm.constructor.options)
         vm.$options = mergeOptions(vm.constructor.options, options);
         console.log(vm.$options)

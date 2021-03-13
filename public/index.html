@@ -13,9 +13,16 @@
         <p>hello {{name}}</p>
         <p>{{arr}}</p>
         <p>{{arr[0]}}</p>
+        <my-component></my-component>
     </div>
     <script src="/dist/umd/vue.js"></script>
     <script type="text/javascript">
+
+        // 内部会调用 Veu.extend() 返回一个组件的构造函数
+        Vue.component("my-component", {
+            template: "<div>hello</div>"
+        });
+
         let vm = new Vue({
             el: "#app",
             data() {
@@ -25,17 +32,20 @@
                     arr: [[7, 8, 9], 1, 2, 3]
                 }
             },
-            beforeCreate() {
-
+            components: {
+                "my-component": {
+                    template: "<div>111111</div>"
+                }
             }
         })
-        vm.arr.push(4);
-        vm.arr.push(5);
-        vm.arr.push(6);
-        console.log(vm.$el.innerHTML)
-        vm.$nextTick(()=>{
-            console.log(vm.$el.innerHTML)
-        })
+        console.log(vm);
+        // vm.arr.push(4);
+        // vm.arr.push(5);
+        // vm.arr.push(6);
+        // console.log(vm.$el.innerHTML)
+        // vm.$nextTick(()=>{
+        //     console.log(vm.$el.innerHTML)
+        // })
         // vm._data.arr.push({name:2222})
         // console.log()
         // console.log(vm._data);

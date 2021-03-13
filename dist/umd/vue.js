@@ -29,7 +29,11 @@
     } // 合并策略集合
 
     let strats = {};
-    const LIFTCYCLE_HOOKS = ["beforeCreate", "created", "beforeMount", "mounted", "beforeUpdate", "updated", "beforeDetroy", "detroyed"];
+    const LIFTCYCLE_HOOKS = ["beforeCreate", "created", "beforeMount", "mounted", "beforeUpdate", "updated", "beforeDetroy", "detroyed"]; // 生命周期的合并策略
+
+    LIFTCYCLE_HOOKS.forEach(hook => {
+      strats[hook] = mergeHook;
+    });
 
     function mergeHook(parentVal, childVal) {
       if (childVal) {
@@ -41,11 +45,24 @@
       } else {
         return parentVal;
       }
-    }
+    } // components的合并策略
 
-    LIFTCYCLE_HOOKS.forEach(hook => {
-      strats[hook] = mergeHook;
-    });
+
+    strats.components = mergeAssets;
+
+    function mergeAssets(parentVal, childVal) {
+      let res = Object.create(parentVal);
+
+      if (childVal) {
+        for (let key in childVal) {
+          res[key] = childVal[key];
+        }
+      }
+
+      return res;
+    } // 默认的合并策略
+
+
     function mergeOptions(parent, child) {
       const options = {};
 
@@ -81,6 +98,14 @@
       }
 
       return options;
+    }
+    function isReservedTag(tagName) {
+      let str = "p,div,input,span,ul,li,ol,button";
+      let obj = {};
+      str.split(",").forEach(tag => {
+        obj[tag] = true;
+      });
+      return obj[tagName];
     }
 
     let oldArrryMethods = Array.prototype;
@@ -674,7 +699,10 @@
         text
       } = vnode; // tag为标签，就创建标签，否则就是文本并创建
 
+      console.log(tag);
+
       if (typeof tag === "string") {
+        // tag为字符串时，可能是html标签也有可能是组件
         vnode.el = document.createElement(tag);
         updateProperties(vnode); //递归创建子节点，并将子节点添加到父节点上面 
 
@@ -763,7 +791,7 @@
         // 用户传入的options和Vue.options合并到vm.$options上，即实例的$options上面
         // options指代的就是用户定义的属性
         // vm.constructor.options 有些实例是继承而来，所以始终要指向实例自身的options
-        // 将用户传递的 和 全局的 进行合并
+        // 将用户传递的 和 全局的 进行合并，统一放在$options上面
 
         console.log(vm.constructor.options);
         vm.$options = mergeOptions(vm.constructor.options, options);
@@ -810,28 +838,62 @@
       Vue.prototype.$nextTick = nextTick;
     }
 
-    function createElement(tag, data = {}, ...children) {
+    function createElement(vm, tag, data = {}, ...children) {
       // console.log(tag, data, children);
       let key = data.key;
 
       if (key) {
         delete data.key;
+      } // isReservedTag判断是否为html标签
+      // 两种情况 1、html标签 2、组件(Vue.component,组件内components,父组件引入子组件)
+      // 组件，例如<my-component></my-component>
+
+
+      console.log(isReservedTag(tag));
+
+      if (isReservedTag(tag)) {
+        return vnode(tag, data, key, children, undefined);
+      } else {
+        // 组件
+        // 根据构造函数创造虚拟节点
+        let Ctor = vm.$options.components[tag];
+        return createComponent(vm, tag, data, key, children, Ctor);
+      }
+    }
+    function createComponent(vm, tag, data, key, children, Ctor) {
+      // Ctor为对象时，是用户定义的组件内的属性
+      // 需要用Vue.extend转化为构造函数
+      // components: {
+      //     "my-component": {
+      //        "template": "<div>111111</div>"
+      //     }
+      // }
+      // Vue.component定义的全局组件已经经过Vue.extend转化为构造函数了
+      // Vue.component("my-component", {
+      //     "template": "<div>hello</div>"
+      // });
+      if (isObject(Ctor)) {
+        Ctor = vm.$options._base.extend(Ctor);
       }
 
-      return vnode(tag, data, key, children, undefined);
+      return vnode(`vue-component-${Ctor.cid}-${tag}`, data, key, undefined, {
+        Ctor,
+        children
+      });
     }
-    function createTextNode(text) {
+    function createTextNode(vm, text) {
       // console.log(text);
       return vnode(undefined, undefined, undefined, undefined, text);
     } // 创建虚拟dom
 
-    function vnode(tag, data, key, children, text) {
+    function vnode(tag, data, key, children, text, componentOptions) {
       return {
         tag,
         data,
         key,
         children,
-        text
+        text,
+        componentOptions
       };
     } // 1、将template模板（html标签）转换成ast语法树 => 生成render方法  => 生成虚拟dom => 真实的dom
     // 2、更新的时候重新生成虚拟dom，和上次的虚拟dom作对比，只把改变的虚拟dom重新生成真实的dom
@@ -845,11 +907,11 @@
       // 巧妙的一点是，_s(val)函数执行时，传入的val即为模板中设置的属性{{name}}，因为with(this){},
       // 此时的上下文为this，即为传入的vm，即是执行vm.name，之前已做过proxy()代理，vm.name => vm._data.name
       Vue.prototype._c = function () {
-        return createElement(...arguments);
+        return createElement(this, ...arguments);
       };
 
       Vue.prototype._v = function (text) {
-        return createTextNode(text);
+        return createTextNode(this, text);
       };
 
       Vue.prototype._s = function (val) {
@@ -867,17 +929,69 @@
       };
     }
 
-    function initGlobalAPI(Vue) {
-      // 整合了所有的全局相关的内容
-      Vue.options = {}; // 生命周期的合并策略,同名的生命周期会合并成一个数组 [beforeCreate,beforeCreate]
-      // 依次执行，不会覆盖，，其实是一个发布订阅模式
+    const ASSETS_TYPE = ["component", "filter", "directive"];
 
+    function initmixin(Vue) {
+      // 生命周期的合并策略,同名的生命周期会合并成一个数组 [beforeCreate,beforeCreate]
+      // 依次执行，不会覆盖，，其实是一个发布订阅模式
       Vue.mixin = function (mixin) {
         // 面试经常问，如何实现两个对象的合并
         this.options = mergeOptions(this.options, mixin);
       };
+    }
 
-      console.log(Vue.options);
+    function initAssetRegisters(Vue) {
+      ASSETS_TYPE.forEach(type => {
+        Vue[type] = function (id, definition) {
+          console.log(id, definition);
+
+          if (type === "component") {
+            // 注册全局组件
+            // 使用extend方法，将对象definition变成构造函数
+            // this.options._base 指每个组件的基类
+            // this.options._base 可能是Vue 可能是子子组件的基类
+            definition = this.options._base.extend(definition);
+          }
+
+          this.options[type + "s"][id] = definition;
+        };
+      });
+    }
+
+    let cid = 0;
+    function initExtend(Vue) {
+      // 全局注册组件
+      // 创建子类，继承于父类，扩展的时候都扩展都自己的属性
+      // 原型继承
+      Vue.extend = function (extendOptions) {
+        console.log(" Vue.extend", extendOptions);
+
+        let Sub = function vueComponent(options) {
+          this._init(options);
+        };
+
+        Sub.cid = cid++;
+        Sub.prototype = Object.create(this.prototype);
+        Sub.prototype.constructor = Sub;
+        Sub.options = mergeOptions(this.options, extendOptions);
+        return Sub;
+      };
+    }
+
+    function initGlobalAPI(Vue) {
+      // 整合了所有的全局相关的内容
+      Vue.options = {}; // 合并策略
+
+      initmixin(Vue); // 初始化的全局过滤器，指令，组件
+
+      ASSETS_TYPE.forEach(type => {
+        Vue.options[type + "s"] = {};
+      }); // _base 是vue的构造函数
+
+      Vue.options._base = Vue; // 注册extend方法
+
+      initExtend(Vue);
+      initAssetRegisters(Vue);
     }
 
     function Vue(options) {

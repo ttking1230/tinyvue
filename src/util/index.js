@@ -34,6 +34,10 @@ const LIFTCYCLE_HOOKS = [
     "beforeDetroy",
     "detroyed"
 ]
+// 生命周期的合并策略
+LIFTCYCLE_HOOKS.forEach(hook => {
+    strats[hook] = mergeHook;
+})
 function mergeHook(parentVal, childVal) {
     if (childVal) {
         if (parentVal) {
@@ -45,9 +49,19 @@ function mergeHook(parentVal, childVal) {
         return parentVal
     }
 }
-LIFTCYCLE_HOOKS.forEach(hook => {
-    strats[hook] = mergeHook;
-})
+// components的合并策略
+strats.components = mergeAssets;
+function mergeAssets(parentVal, childVal) {
+    let res = Object.create(parentVal);
+    if (childVal) {
+        for (let key in childVal) {
+            res[key] = childVal[key];
+        }
+    }
+    return res;
+}
+
+// 默认的合并策略
 export function mergeOptions(parent, child) {
     const options = {}
     for (let key in parent) {
@@ -81,4 +95,13 @@ export function mergeOptions(parent, child) {
     }
 
     return options;
+}
+
+export function isReservedTag(tagName) {
+    let str = "p,div,input,span,ul,li,ol,button";
+    let obj = {};
+    str.split(",").forEach(tag => {
+        obj[tag] = true;
+    })
+    return obj[tagName];
 }

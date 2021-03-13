@@ -31,7 +31,9 @@ function createElm(vnode) { //根据虚拟节点创建真实的节点
     let { tag, children, key, data, text } = vnode;
 
     // tag为标签，就创建标签，否则就是文本并创建
+    console.log(tag);
     if (typeof tag === "string") {
+        // tag为字符串时，可能是html标签也有可能是组件
         vnode.el = document.createElement(tag);
         updateProperties(vnode);
         //递归创建子节点，并将子节点添加到父节点上面 
